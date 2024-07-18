@@ -1,17 +1,10 @@
 from conf import conf_token
 import telebot
+from form import Form
 
 TOKEN = conf_token
 
 bot = telebot.TeleBot(TOKEN)
-
-class Form:
-    def __init__(self, id):
-        self.id = id
-        self.name = None
-        self.age = None
-        self.sex = None
-        self.desc = None
 
 new_forms = {}
 
@@ -101,5 +94,5 @@ def edit_form(query : telebot.types.CallbackQuery):
     markup.row(button1, button2, button3, button4)
     markup.row(button5, button6)
     bot.send_message(query.message.chat.id, 'Что ты хочешь сохранить?', reply_markup=markup)
-    
+
 bot.infinity_polling()
