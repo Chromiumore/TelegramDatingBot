@@ -21,7 +21,7 @@ class Database:
         connection.commit()
         cursor.close()
         
-    def load_form(self, form : Form):
+    def upload_form(self, form : Form):
         connection = sqlite3.connect(self.file)
         cursor = connection.cursor()
         id = form.id
@@ -32,19 +32,26 @@ class Database:
         cursor.execute(f'''
                        DELETE FROM forms WHERE id = {id};
                        ''')
-        cursor.execute(f'''INSERT INTO forms (id, name, age, sex, desc)
+        cursor.execute(f'''
+                       INSERT INTO forms (id, name, age, sex, desc)
                        VALUES({id}, '{name}', {age}, '{sex}', '{desc}');
                        ''')
         connection.commit()
         cursor.close()
             
-
-    def check_field_exists(self, id):
+    def download_form(self, id : int):
         connection = sqlite3.connect(self.file)
         cursor = connection.cursor()
-        cursor.execute('''SELECT * FROM forms
-                       WHERE id = ''' + str(id))
-        res = not cursor.fetchone() is None
+        cursor.execute(f'''
+                       SELECT * FROM forms
+                       WHERE id = {id}
+                       ''')
+        res = cursor.fetchone()
         connection.commit()
         cursor.close()
         return res
+
+    def check_field_exists(self, id):
+        select = self.download_form(id)
+        return not select is None
+    
