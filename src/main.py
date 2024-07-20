@@ -1,9 +1,11 @@
 from conf import conf_token
 import telebot
 from form import Form
+from database import Database
 
 TOKEN = conf_token
 
+db_file = 'src/database.db'
 bot = telebot.TeleBot(TOKEN)
 
 new_forms = {}
@@ -93,6 +95,6 @@ def edit_form(query : telebot.types.CallbackQuery):
     button6 = telebot.types.InlineKeyboardButton('Сохранить', callback_data='save_edit')
     markup.row(button1, button2, button3, button4)
     markup.row(button5, button6)
-    bot.send_message(query.message.chat.id, 'Что ты хочешь сохранить?', reply_markup=markup)
+    bot.send_message(query.message.chat.id, 'Что ты хочешь изменить?', reply_markup=markup)
 
 bot.infinity_polling()

@@ -8,6 +8,9 @@ class Form:
 
     def get_data(self):
         return (self.id, self.name, self.age, self.sex, self.desc)
+    
+    def set_data(self, data):
+        self.id, self.name, self.age, self.sex, self.desc = data
 
     def show_data(self):
         print(f'id: {self.id}, name: {self.name}, age: {self.age}, sex: {self.sex}')

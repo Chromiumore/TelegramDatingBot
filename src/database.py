@@ -54,4 +54,3 @@ class Database:
     def check_field_exists(self, id):
         select = self.download_form(id)
         return not select is None
-    
