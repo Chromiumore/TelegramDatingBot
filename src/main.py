@@ -6,6 +6,8 @@ from database import Database
 TOKEN = conf_token
 
 db_file = 'src/database.db'
+db = Database(db_file)
+
 bot = telebot.TeleBot(TOKEN)
 
 new_forms = {}
@@ -45,7 +47,7 @@ def process_age_step(message):
     markup.row(button3)
     bot.send_message(message.chat.id, 'Теперь укажи свой пол', reply_markup=markup)   
 
-@bot.callback_query_handler(lambda query: query.data in ['man', 'woman', 'undefined'])
+@bot.callback_query_handler(lambda query: query.data in ('man', 'woman', 'undefined'))
 def callback_sex(query : telebot.types.CallbackQuery):
     id = query.message.chat.id
     if query.data == 'man':
@@ -96,5 +98,15 @@ def edit_form(query : telebot.types.CallbackQuery):
     markup.row(button1, button2, button3, button4)
     markup.row(button5, button6)
     bot.send_message(query.message.chat.id, 'Что ты хочешь изменить?', reply_markup=markup)
+
+@bot.callback_query_handler(lambda query: query.data in ('save_form', 'cancel_save_form'))
+def save_form_decision(query : telebot.types.CallbackQuery):
+    if query.data == 'cancel_save_form':
+        main_menu(query.message)
+    else:
+        id = query.message.chat.id
+        db.upload_form(new_forms[id])
+        new_forms.pop(id)
+        bot.send_message(query.message.chat.id, 'Данные успешно сохранены')
 
 bot.infinity_polling()
