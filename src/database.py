@@ -20,6 +20,7 @@ class Database:
 
         connection.commit()
         cursor.close()
+        connection.close()
         
     def upload_form(self, form : Form):
         connection = sqlite3.connect(self.file)
@@ -38,6 +39,7 @@ class Database:
                        ''')
         connection.commit()
         cursor.close()
+        connection.close()
             
     def download_form(self, id : int):
         connection = sqlite3.connect(self.file)
@@ -49,6 +51,7 @@ class Database:
         res = cursor.fetchone()
         connection.commit()
         cursor.close()
+        connection.close()
         return res
 
     def check_field_exists(self, id):
