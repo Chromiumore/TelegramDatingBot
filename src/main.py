@@ -15,7 +15,11 @@ new_forms = {}
 @bot.message_handler(commands=['start'])
 def start_message(message):
     bot.send_message(message.chat.id, "Привет! Добро пожаловать в лучший чат для знакомств.")
-    main_menu(message)
+    if db.check_field_exists(message.chat.id):
+        main_menu(message)
+    else:
+        bot.send_message(message.chat.id, 'Чтобы начать, тебе нужно заполнить свою анкету')
+        create_form(message)
 
 @bot.message_handler(commands=['menu'])
 def main_menu(message):
@@ -27,12 +31,20 @@ def main_menu(message):
     markup.row(button2, button3)
     bot.send_message(message.chat.id, 'Выбери действие:  ', reply_markup=markup)
 
-@bot.callback_query_handler(lambda query: query.data == 'create_form')
-def create_form(query):
-    id = query.message.chat.id
+@bot.callback_query_handler(lambda query: query.data in ['view_forms', 'edit_form', 'create_form'])
+def callback_menu(query : telebot.types.CallbackQuery):
+    if query.data == 'view_forms':
+        pass
+    elif query.data == 'edit_form':
+        pass
+    else:
+        create_form(query.message)
+
+def create_form(message):
+    id = message.chat.id
     form = Form(id)
     new_forms[id] = form
-    bot_message = bot.send_message(query.message.chat.id, "Сколько тебе лет?")
+    bot_message = bot.send_message(message.chat.id, "Сколько тебе лет?")
     bot.register_next_step_handler(bot_message, process_age_step)
 
 def process_age_step(message):
@@ -78,10 +90,10 @@ def confirm_form(message):
     button2 = telebot.types.InlineKeyboardButton('Нет', callback_data='cancel_save_form')
     markup.row(button1, button2)
     bot.send_message(message.chat.id, 'Вот так выглядит твоя анкета:')
-    send_my_form(message, new_forms[message.chat.id])
+    send_form(message, new_forms[message.chat.id])
     bot.send_message(message.chat.id, 'Сохранить?', reply_markup=markup)
 
-def send_my_form(message, form : Form):
+def send_form(message, form : Form):
     text = form.show_data()
     bot.send_message(message.chat.id, text)
 
@@ -97,7 +109,7 @@ def edit_form(query : telebot.types.CallbackQuery):
     markup.row(button1, button2, button3, button4)
     markup.row(button5, button6)
     bot.send_message(query.message.chat.id, 'Вот так выглядит твоя анкета:')
-    send_my_form(query.message, new_forms[query.message.chat.id])
+    send_form(query.message, new_forms[query.message.chat.id])
     bot.send_message(query.message.chat.id, 'Что ты хочешь изменить?', reply_markup=markup)
 
 @bot.callback_query_handler(lambda query: query.data in ('save_form', 'cancel_save_form'))
