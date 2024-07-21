@@ -4,9 +4,9 @@ from form import Form
 from database import Database
 
 TOKEN = conf_token
+DB_FILE = 'src/database.db'
 
-db_file = 'src/database.db'
-db = Database(db_file)
+db = Database(DB_FILE)
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -36,7 +36,7 @@ def callback_menu(query : telebot.types.CallbackQuery):
     if query.data == 'view_forms':
         pass
     elif query.data == 'edit_form':
-        pass
+        edit_form(query.message)
     else:
         create_form(query.message)
 
@@ -97,20 +97,23 @@ def send_form(message, form : Form):
     text = form.show_data()
     bot.send_message(message.chat.id, text)
 
-@bot.callback_query_handler(lambda query: query.data == 'edit_form')
-def edit_form(query : telebot.types.CallbackQuery):
-    markup = telebot.types.InlineKeyboardMarkup()
-    button1 = telebot.types.InlineKeyboardButton('Возраст', callback_data='edit_age')
-    button2 = telebot.types.InlineKeyboardButton('Пол', callback_data='edit_sex')
-    button3 = telebot.types.InlineKeyboardButton('Имя', callback_data='edit_name')
-    button4 = telebot.types.InlineKeyboardButton('Описание', callback_data='edit_desc')
-    button5 = telebot.types.InlineKeyboardButton('Отмена', callback_data='cancel_edit')
-    button6 = telebot.types.InlineKeyboardButton('Сохранить', callback_data='save_edit')
-    markup.row(button1, button2, button3, button4)
-    markup.row(button5, button6)
-    bot.send_message(query.message.chat.id, 'Вот так выглядит твоя анкета:')
-    send_form(query.message, new_forms[query.message.chat.id])
-    bot.send_message(query.message.chat.id, 'Что ты хочешь изменить?', reply_markup=markup)
+def edit_form(message):
+    if not db.check_field_exists(message.chat.id):
+        bot.send_message(message.chat.id, 'У тебя ещё нет анкеты. Давай создадим её!')
+        create_form(message)
+    else:
+        markup = telebot.types.InlineKeyboardMarkup()
+        button1 = telebot.types.InlineKeyboardButton('Возраст', callback_data='edit_age')
+        button2 = telebot.types.InlineKeyboardButton('Пол', callback_data='edit_sex')
+        button3 = telebot.types.InlineKeyboardButton('Имя', callback_data='edit_name')
+        button4 = telebot.types.InlineKeyboardButton('Описание', callback_data='edit_desc')
+        button5 = telebot.types.InlineKeyboardButton('Отмена', callback_data='cancel_edit')
+        button6 = telebot.types.InlineKeyboardButton('Сохранить', callback_data='save_edit')
+        markup.row(button1, button2, button3, button4)
+        markup.row(button5, button6)
+        bot.send_message(message.chat.id, 'Вот так выглядит твоя анкета:')
+        send_form(message, get_form(message.chat.id))
+        bot.send_message(message.chat.id, 'Что ты хочешь изменить?', reply_markup=markup)
 
 @bot.callback_query_handler(lambda query: query.data in ('save_form', 'cancel_save_form'))
 def save_form_decision(query : telebot.types.CallbackQuery):
@@ -121,5 +124,10 @@ def save_form_decision(query : telebot.types.CallbackQuery):
         db.upload_form(new_forms[id])
         new_forms.pop(id)
         bot.send_message(query.message.chat.id, 'Данные успешно сохранены')
+
+def get_form(id):
+    data = db.download_form(id)
+    form = Form(*data)
+    return form
 
 bot.infinity_polling()
