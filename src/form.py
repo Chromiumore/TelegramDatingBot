@@ -13,5 +13,5 @@ class Form:
         self.id, self.name, self.age, self.sex, self.desc = data
 
     def show_data(self):
-        print(f'id: {self.id}, name: {self.name}, age: {self.age}, sex: {self.sex}')
-        print(f'description: {self.desc}')
+        text = f'''{self.name}, {self.age} лет.\nПол: {self.sex} \n\nОбо мне:\n{self.desc}'''
+        return text
