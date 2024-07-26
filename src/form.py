@@ -1,3 +1,5 @@
+from telebot.handler_backends import State, StatesGroup
+
 class Form:
     def __init__(self, id=0, name=None, age=None, sex=None, desc=None):
         self.id = id
@@ -15,3 +17,10 @@ class Form:
     def show_data(self):
         text = f'''{self.name}, {self.age} лет.\nПол: {self.sex} \n\nОбо мне:\n{self.desc}'''
         return text
+    
+class FormState(StatesGroup):
+    name = State()
+    age = State()
+    sex = State()
+    desc = State()
+    save = State()
