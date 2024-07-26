@@ -41,7 +41,7 @@ class Database:
         cursor.close()
         connection.close()
             
-    def download_form(self, id : int):
+    def download_data(self, id : int):
         connection = sqlite3.connect(self.file)
         cursor = connection.cursor()
         cursor.execute(f'''
@@ -57,3 +57,8 @@ class Database:
     def check_field_exists(self, id):
         select = self.download_form(id)
         return not select is None
+    
+    def download_form(self, id):
+        data = self.download_data(id)
+        form = Form(*data)
+        return form
