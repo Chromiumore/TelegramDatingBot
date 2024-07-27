@@ -39,8 +39,12 @@ def menu_action(message):
     if message.text == 'Смотреть анкеты':
         pass
     elif message.text == 'Редактировать анкету':
-        form = db.download_form(message.from_user.id)
-        edit_form(message, form)
+        if not db.check_field_exists(message.chat.id):
+            bot.send_message(message.chat.id, 'У тебя ещё нет анкеты. Давай создадим её!')
+            create_form(message)
+        else:
+            form = db.download_form(message.from_user.id)
+            edit_form(message, form)
     else:
         create_form(message)
 
