@@ -18,7 +18,7 @@ bot = telebot.TeleBot(TOKEN, state_storage=state_storage)
 def start_message(message):
     clear_temp_data(message.from_user.id, message.chat.id)
     bot.send_message(message.chat.id, "Привет! Добро пожаловать в лучший чат для знакомств.")
-    if db.check_field_exists(message.chat.id):
+    if db.check_field_exists(message.from_user.id):
         main_menu(message)
     else:
         bot.send_message(message.chat.id, 'Чтобы начать, тебе нужно заполнить свою анкету')
@@ -39,7 +39,8 @@ def menu_action(message):
     if message.text == 'Смотреть анкеты':
         pass
     elif message.text == 'Редактировать анкету':
-        edit_form(message)
+        form = db.download_form(message.from_user.id)
+        edit_form(message, form)
     else:
         create_form(message)
 
@@ -99,7 +100,7 @@ def confirm_form(message):
     bot.send_message(message.chat.id, 'Сохранить?', reply_markup=markup)
     bot.set_state(message.from_user.id, FormState.save, message.chat.id)
 
-def edit_form(message):
+def edit_form(message, form):
     if not db.check_field_exists(message.chat.id):
         bot.send_message(message.chat.id, 'У тебя ещё нет анкеты. Давай создадим её!')
         create_form(message)
@@ -115,7 +116,6 @@ def edit_form(message):
         markup.row(button1, button2, button3, button4)
         markup.row(button5, button6)
         bot.send_message(message.chat.id, 'Вот так выглядит твоя анкета:')
-        form = db.download_form(message.from_user.id)
         set_temp_data(message.from_user.id, message.chat.id, form)
         text = form.show_data()
         bot.send_message(message.chat.id, text)
@@ -123,28 +123,80 @@ def edit_form(message):
 
 @bot.message_handler(state=FormState.edit_menu)
 def edit_action(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
     if message.text == 'Возраст':
-        pass
+        bot.send_message(chat_id, 'Напиши новый возраст')
+        bot.set_state(user_id, FormState.edit_age, chat_id)
     elif message.text == 'Пол':
-        pass
+        markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+        button1 = telebot.types.KeyboardButton('Парень')
+        button2 = telebot.types.KeyboardButton('Девушка')
+        button3 = telebot.types.KeyboardButton('Не указывать')
+        markup.row(button1, button2)
+        markup.row(button3)
+        bot.send_message(chat_id, 'Укажи свой пол', reply_markup=markup)
+        bot.set_state(user_id, FormState.edit_sex, chat_id)
     elif message.text == 'Имя':
-        pass
+        bot.send_message(chat_id, 'Напиши новое имя')
+        bot.set_state(user_id, FormState.edit_name, chat_id)
     elif message.text == 'Описание':
-        pass
+        bot.send_message(chat_id, 'Расскажи о себе:')
+        bot.set_state(user_id, FormState.edit_desc, chat_id)
     elif message.text == 'Отмена':
         clear_temp_data(message.from_user.id, message.chat.id)
+        main_menu(message)
     elif message.text == 'Сохранить':
-        pass
+        save_form(message)
+        bot.send_message(message.chat.id, 'Вы успешно измнили свою анкету')
+        bot.delete_state(user_id, chat_id)
+        main_menu(message)
+
+@bot.message_handler(state=FormState.edit_age)
+def edit_age(message):
+    age = message.text
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        data['age'] = age
+    edit_form(message, generate_form(message.from_user.id, message.chat.id))
+
+@bot.message_handler(state=FormState.edit_sex)
+def edit_sex(message):
+    sex = message.text
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        if sex == 'Парень':
+            data['sex'] = 'Мужской'
+        elif sex == 'Девушка':
+            data['sex'] = 'Женский'
+        else:
+            data['sex'] = 'Не указано'
+    edit_form(message, generate_form(message.from_user.id, message.chat.id))
+
+@bot.message_handler(state=FormState.edit_name)
+def edit_name(message):
+    name = message.text
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        data['name'] = name
+    edit_form(message, generate_form(message.from_user.id, message.chat.id))
+
+@bot.message_handler(state=FormState.edit_desc)
+def edit_desc(message):
+    desc = message.text
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        data['desc'] = desc
+    edit_form(message, generate_form(message.from_user.id, message.chat.id))
 
 @bot.message_handler(func=lambda message: message.text in ('Да', 'Нет'), state=FormState.save)
 def save_form_decision(message):
     if message.text == 'Нет':
         main_menu(message)
     else:
-        id = message.chat.id
-        db.upload_form(generate_form(message.from_user.id, message.chat.id))
+        save_form(message)
         bot.send_message(message.chat.id, 'Данные успешно сохранены')
     bot.delete_state(message.from_user.id, message.chat.id)
+
+def save_form(message):
+    id = message.chat.id
+    db.upload_form(generate_form(message.from_user.id, message.chat.id))
 
 def generate_form(user_id, chat_id):
     with bot.retrieve_data(user_id, chat_id) as data:
