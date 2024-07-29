@@ -19,6 +19,7 @@ class Form:
         return text
     
 class FormState(StatesGroup):
+    main_menu = State()
     name = State()
     age = State()
     sex = State()
