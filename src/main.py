@@ -31,7 +31,6 @@ def start_message(message):
     else:
         bot.send_message(message.chat.id, 'Чтобы начать, тебе нужно заполнить свою анкету')
         create_form(message)
-
 @bot.message_handler(commands=['menu'])
 def main_menu(message):
     clear_temp_data(message.from_user.id, message.chat.id)
@@ -116,19 +115,47 @@ def get_name(message : telebot.types.Message):
     bot.set_state(message.from_user.id, FormState.desc, message.chat.id)
 
 @bot.message_handler(state=FormState.desc)
-def get_desc(message):
+def get_desc(message : telebot.types.Message):
     desc = str(message.text)
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data['desc'] = desc
-    confirm_form(message)
+        data['photos'] = []
+    # confirm_form(message)
+    bot.send_message(message.chat.id, 'Отправь свои фотографии', reply_markup=cancel_markup)
+    bot.set_state(message.from_user.id, FormState.photos, message.chat.id)
+    print(f'State of {message.from_user.id} changed to', bot.get_state(message.from_user.id, message.chat.id))
+
+@bot.message_handler(state=FormState.photos, content_types=['photo', 'text', 'video'])
+def get_photos(message : telebot.types.Message):
+    stop_add_photos = False
+    if message.content_type != 'photo':
+        bot.send_message(message.chat.id, 'Это не подойдёт, мне нужны только твои фотографии')
+        return
+    print('Getting a photo from user: ', message.from_user.id)
+    photo_id = message.photo[-1].file_id
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        data['photos'].append(photo_id)
+        print(f'User {message.from_user.id} has next photos: ', data['photos'])
+        bot.send_message(message.chat.id, f'{len(data['photos'])}/2 фотографий добавлено', reply_markup=cancel_markup)
+        if len(data['photos']) >= 2:
+            stop_add_photos = True
+    if stop_add_photos:
+        confirm_form(message)
 
 def confirm_form(message):
     form = generate_form(message.from_user.id, message.chat.id)
+    print(message.from_user.id, 'is thinking about saving his new form: ', form.get_data())
     text = form.show_data()
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, is_persistent=True)
     markup.add(save_button, cancel_button)
+    photos_to_send = []
+    for i in range(len(form.photos)):
+        if i == 0:
+            photos_to_send.append(telebot.types.InputMediaPhoto(form.photos[i], text))
+        else:
+            photos_to_send.append(telebot.types.InputMediaPhoto(form.photos[i]))
     bot.send_message(message.chat.id, 'Вот так выглядит твоя анкета:')
-    bot.send_message(message.chat.id, text)
+    bot.send_media_group(message.chat.id, photos_to_send)
     bot.send_message(message.chat.id, 'Сохранить?', reply_markup=markup)
     bot.set_state(message.from_user.id, FormState.save, message.chat.id)
 
@@ -242,7 +269,8 @@ def save_form(message):
 
 def generate_form(user_id, chat_id):
     with bot.retrieve_data(user_id, chat_id) as data:
-        form = Form(user_id, data['name'], data['age'], data['sex'], data['desc'])
+        form = Form(user_id, data['name'], data['age'], data['sex'], data['desc'], data['photos'])
+        print(f'Generated form {form.get_data()}')
     return form
 
 def clear_temp_data(user_id, chat_id):
