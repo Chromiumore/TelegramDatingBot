@@ -34,3 +34,4 @@ class FormState(StatesGroup):
     edit_desc = State()
     edit_save = State()
     edit_photos = State()
+    edit_numbered_photo = State()

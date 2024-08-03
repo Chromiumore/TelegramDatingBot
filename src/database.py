@@ -76,10 +76,11 @@ class Database:
         connection = sqlite3.connect(self.file)
         cursor = connection.cursor()
         cursor.execute(f'''
-                       SELECT * FROM photos
+                       SELECT photo_id FROM photos
                        WHERE user_id = {id}
                        ''')
-        photos = cursor.fetchone()
+        req = cursor.fetchall()
+        photos = [x[0] for x in req]
         return photos
 
     def check_field_exists(self, id):
@@ -87,8 +88,8 @@ class Database:
         return not select is None
     
     def download_form(self, id):
-        data = self.download_data(id)
-        photos = self.download_photos(id)
-        data += photos
+        data = list(self.download_data(id))
+        photos = list(self.download_photos(id))
+        data.append(photos)
         form = Form(*data)
         return form
