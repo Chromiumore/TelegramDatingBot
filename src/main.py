@@ -194,18 +194,7 @@ def edit_action(message):
         bot.send_message(chat_id, 'Расскажи о себе:', reply_markup=cancel_markup)
         bot.set_state(user_id, FormState.edit_desc, chat_id)
     elif message.text == 'Фотографии':
-        markup=telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, is_persistent=True)
-        button1 = telebot.types.KeyboardButton('1')
-        button2 = telebot.types.KeyboardButton('2')
-        button3 = telebot.types.KeyboardButton('3')
-        button4 = telebot.types.KeyboardButton('4')
-        button5 = telebot.types.KeyboardButton('Заполнить заново')
-        button6 = telebot.types.KeyboardButton('Удалить все фотографии')
-        markup.row(button1, button2, button3, button4)
-        markup.row(button5, button6)
-        markup.row(cancel_button)
-        bot.send_message(chat_id, 'Какую фотографию ты хочешь изменить?', reply_markup=markup)
-        bot.set_state(user_id, FormState.edit_photos, chat_id)
+        start_edit_photos(user_id, chat_id)
     elif message.text == save_text:
         save_form(message)
         bot.send_message(message.chat.id, 'Вы успешно измнили свою анкету')
@@ -257,6 +246,23 @@ def edit_desc(message):
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data['desc'] = desc
     edit_form(message, generate_form(message.from_user.id, message.chat.id))
+
+def start_edit_photos(user_id, chat_id):
+    markup=telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, is_persistent=True)
+    with bot.retrieve_data(user_id, chat_id) as data:
+        photo_buttons = []
+        amount = len(data['photos'])
+        for i in range(amount):
+            photo_buttons.append(telebot.types.KeyboardButton(str(i + 1)))
+        if amount < 4:
+            photo_buttons.append(telebot.types.KeyboardButton('Добавить➕'))
+    button_again = telebot.types.KeyboardButton('Заполнить заново')
+    button_delete = telebot.types.KeyboardButton('Удалить все фотографии')
+    markup.row(*photo_buttons)
+    markup.row(button_again, button_delete)
+    markup.row(cancel_button)
+    bot.send_message(chat_id, 'Какую фотографию ты хочешь изменить?', reply_markup=markup)
+    bot.set_state(user_id, FormState.edit_photos, chat_id)
 
 @bot.message_handler(state=FormState.edit_photos)
 def edit_photos(message):
