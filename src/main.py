@@ -31,6 +31,7 @@ def start_message(message):
     else:
         bot.send_message(message.chat.id, 'Чтобы начать, тебе нужно заполнить свою анкету')
         create_form(message)
+
 @bot.message_handler(commands=['menu'])
 def main_menu(message):
     clear_temp_data(message.from_user.id, message.chat.id)
