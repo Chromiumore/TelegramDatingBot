@@ -122,26 +122,34 @@ def get_desc(message : telebot.types.Message):
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data['desc'] = desc
         data['photos'] = []
-    bot.send_message(message.chat.id, 'Отправь свои фотографии', reply_markup=cancel_markup)
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    button_skip = telebot.types.KeyboardButton('Далее')
+    markup.row(button_skip)
+    markup.row(cancel_button)
+    bot.send_message(message.chat.id, 'Отправь свои фотографии', reply_markup=markup)
     bot.set_state(message.from_user.id, FormState.photos, message.chat.id)
     print(f'State of {message.from_user.id} changed to', bot.get_state(message.from_user.id, message.chat.id))
 
-@bot.message_handler(state=FormState.photos, content_types=['photo', 'text', 'video'])
+@bot.message_handler(state=FormState.photos, content_types=['photo', 'text'])
 def get_photos(message : telebot.types.Message):
-    stop_add_photos = False
-    if message.content_type != 'photo':
-        bot.send_message(message.chat.id, 'Это не подойдёт, мне нужны только твои фотографии')
-        return
-    print('Getting a photo from user: ', message.from_user.id)
-    photo_id = message.photo[-1].file_id
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        data['photos'].append(photo_id)
-        print(f'User {message.from_user.id} has next photos: ', data['photos'])
-        bot.send_message(message.chat.id, f'{len(data['photos'])}/2 фотографий добавлено', reply_markup=cancel_markup)
-        if len(data['photos']) >= 2:
-            stop_add_photos = True
+        stop_add_photos = False
+        if message.content_type == 'text':
+            if message.text == 'Далее' and len(data['photos']) > 0:
+                stop_add_photos = True
+            else:
+                bot.send_message(message.chat.id, 'У тебя должна быть как минимум 1 фотография')
+        else:
+            print('Getting a photo from user: ', message.from_user.id)
+            photo_id = message.photo[-1].file_id
+            data['photos'].append(photo_id)
+            print(f'User {message.from_user.id} has next photos: ', data['photos'])
+            bot.send_message(message.chat.id, f'{len(data['photos'])}/2 фотографий добавлено')
+            if len(data['photos']) >= 2:
+                stop_add_photos = True
     if stop_add_photos:
         confirm_form(message)
+            
 
 def confirm_form(message):
     form = generate_form(message.from_user.id, message.chat.id)
