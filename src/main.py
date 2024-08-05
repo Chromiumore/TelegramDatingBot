@@ -6,14 +6,14 @@ from form import Form, FormState
 from database import Database
 from telebot.handler_backends import State
 
-TOKEN = conf_token
-DB_FILE = 'src/database.db'
+TOKEN = conf_token # Unique telegram bot token
+DB_FILE = 'src/database.db' # Path of database file
 
-db = Database(DB_FILE)
+db = Database(DB_FILE) # Creating database for storing all information about the users
 
-state_storage = StateMemoryStorage()
+state_storage = StateMemoryStorage() # Bot's internal storage to keep states
 
-bot = telebot.TeleBot(TOKEN, state_storage=state_storage)
+bot = telebot.TeleBot(TOKEN, state_storage=state_storage) # Creating bot
 
 cancel_text = 'Отменить❌'
 save_text = 'Сохранить✔️'
@@ -67,6 +67,7 @@ def menu_action(message : telebot.types.Message):
     else:
         bot.send_message(message.chat.id, 'Нет такого варианта ответа')
 
+# Function to start creating form sequence
 def create_form(message):
     bot.send_message(message.chat.id, "Сколько тебе лет?", reply_markup=cancel_markup)
     bot.set_state(message.from_user.id, FormState.age, message.chat.id)
@@ -121,7 +122,6 @@ def get_desc(message : telebot.types.Message):
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data['desc'] = desc
         data['photos'] = []
-    # confirm_form(message)
     bot.send_message(message.chat.id, 'Отправь свои фотографии', reply_markup=cancel_markup)
     bot.set_state(message.from_user.id, FormState.photos, message.chat.id)
     print(f'State of {message.from_user.id} changed to', bot.get_state(message.from_user.id, message.chat.id))
@@ -305,16 +305,19 @@ def save_form(message):
     id = message.chat.id
     db.upload_form(generate_form(message.from_user.id, message.chat.id))
 
+# This function gaenerates form based on data about the user from the bot's context manager 
 def generate_form(user_id, chat_id):
     with bot.retrieve_data(user_id, chat_id) as data:
         form = Form(user_id, data['name'], data['age'], data['sex'], data['desc'], data['photos'])
         print(f'Generated form {form.get_data()}')
     return form
 
+# Deletes current state and data for a user in chat
 def clear_temp_data(user_id, chat_id):
     bot.delete_state(user_id, chat_id)
     bot.reset_data(user_id, chat_id)
 
+# Sets current state and data for a user in chat
 def set_temp_data(user_id, chat_id, form : Form):
     with bot.retrieve_data(user_id, chat_id) as data:
         _, data['name'], data['age'], data['sex'], data['desc'], data['photos'] = form.get_data()
