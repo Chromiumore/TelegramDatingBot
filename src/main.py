@@ -45,7 +45,7 @@ def main_menu(message):
 
 @bot.message_handler(func=lambda message: message.text == cancel_text, state = '*')
 def cancel(message: telebot.types.Message):
-    if not (bot.get_state(message.from_user.id, message.chat.id) in ['FormState:edit_age', 'FormState:edit_name', 'FormState:edit_sex', 'FormState:edit_desc', 'FormState:edit_save']):
+    if not (bot.get_state(message.from_user.id, message.chat.id) in ['FormState:edit_age', 'FormState:edit_name', 'FormState:edit_sex', 'FormState:edit_desc', 'FormState:edit_save', 'FormState:edit_photos', 'FormState:edit_numbered_photo']):
         bot.delete_state(message.from_user.id, message.chat.id)
         main_menu(message)
     else:
@@ -264,11 +264,12 @@ def start_edit_photos(user_id, chat_id):
             photo_buttons.append(telebot.types.KeyboardButton(str(i + 1)))
         if amount < 4:
             photo_buttons.append(telebot.types.KeyboardButton('Добавить➕'))
-    button_again = telebot.types.KeyboardButton('Заполнить заново')
-    button_delete = telebot.types.KeyboardButton('Удалить все фотографии')
+    again_button = telebot.types.KeyboardButton('Заполнить заново')
+    delete_button = telebot.types.KeyboardButton('Удалить все фотографии')
+    confirm_button = telebot.types.KeyboardButton('Готово')
     markup.row(*photo_buttons)
-    markup.row(button_again, button_delete)
-    markup.row(cancel_button)
+    markup.row(again_button, delete_button)
+    markup.row(confirm_button, cancel_button)
     bot.send_message(chat_id, 'Какую фотографию ты хочешь изменить?', reply_markup=markup)
     bot.set_state(user_id, FormState.edit_photos, chat_id)
 
@@ -283,7 +284,11 @@ def edit_photos(message):
         else:
             bot.send_message(message.chat.id, 'Нет фотографии с таким номером')
     else:
-        if message.text == 'Заполнить заново':
+        if message.text == 'Готово':
+            edit_form(message, generate_form(message.from_user.id, message.chat.id))
+        elif message.text == 'Добавить➕':
+            pass
+        elif message.text == 'Заполнить заново':
             pass
         elif message.text == 'Удалить все фотографии':
             pass
@@ -297,11 +302,10 @@ def edit_photo(message):
         return
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         num = data['photo_num']
-    photo_id = message.photo[-1].file_id
-    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        photo_id = message.photo[-1].file_id
         data['photos'].pop(num - 1)
         data['photos'].insert(num - 1, photo_id)
-    edit_form(message, generate_form(message.from_user.id, message.chat.id))
+    start_edit_photos(message.from_user.id, message.chat.id)
 
 @bot.message_handler(func=lambda message: message.text in (save_text, cancel_text), state=FormState.save)
 def save_form_decision(message):
