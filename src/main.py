@@ -287,7 +287,10 @@ def edit_photos(message):
         if message.text == 'Готово':
             edit_form(message, generate_form(message.from_user.id, message.chat.id))
         elif message.text == 'Добавить➕':
-            pass
+            bot.send_message(message.chat.id, 'Отправь новую фотографию', reply_markup=cancel_markup)
+            with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+                data['photo_num'] = len(data['photos']) + 1 # Position of new photo (not index)
+            bot.set_state(message.from_user.id, FormState.edit_numbered_photo, message.chat.id)
         elif message.text == 'Заполнить заново':
             pass
         elif message.text == 'Удалить все фотографии':
@@ -303,8 +306,10 @@ def edit_photo(message):
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         num = data['photo_num']
         photo_id = message.photo[-1].file_id
-        data['photos'].pop(num - 1)
-        data['photos'].insert(num - 1, photo_id)
+        if len(data['photos']) >= num:
+            data['photos'][num - 1] = photo_id
+        else:
+            data['photos'].append(photo_id)
     start_edit_photos(message.from_user.id, message.chat.id)
 
 @bot.message_handler(func=lambda message: message.text in (save_text, cancel_text), state=FormState.save)

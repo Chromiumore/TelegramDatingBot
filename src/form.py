@@ -36,4 +36,4 @@ class FormState(StatesGroup):
     edit_desc = State()
     edit_save = State()
     edit_photos = State() # In photos editing menu
-    edit_numbered_photo = State() # Editing a specific photo
+    edit_numbered_photo = State() # Editing a specific photo or adding a new one
