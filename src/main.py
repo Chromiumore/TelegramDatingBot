@@ -21,6 +21,7 @@ cancel_button = telebot.types.KeyboardButton(cancel_text)
 save_button = telebot.types.KeyboardButton(save_text)
 cancel_markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, is_persistent=True)
 cancel_markup.add(cancel_button)
+skip_button = telebot.types.KeyboardButton('Далее')
 
 @bot.message_handler(commands=['start'])
 def start_message(message):
@@ -123,38 +124,20 @@ def get_desc(message : telebot.types.Message):
         data['desc'] = desc
         data['photos'] = []
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    button_skip = telebot.types.KeyboardButton('Далее')
-    markup.row(button_skip)
+    markup.row(skip_button)
     markup.row(cancel_button)
-    bot.send_message(message.chat.id, 'Отправь свои фотографии', reply_markup=markup)
+    bot.send_message(message.chat.id, 'Отправь свою фотографию. Ты можешь сохранить в своей анкете от 1 до 4 фотографий.\nОтправляй по одной!', reply_markup=markup)
     bot.set_state(message.from_user.id, FormState.photos, message.chat.id)
     print(f'State of {message.from_user.id} changed to', bot.get_state(message.from_user.id, message.chat.id))
 
 @bot.message_handler(state=FormState.photos, content_types=['photo', 'text'])
 def get_photos(message : telebot.types.Message):
-    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        stop_add_photos = False
-        if message.content_type == 'text':
-            if message.text == 'Далее' and len(data['photos']) > 0:
-                stop_add_photos = True
-            else:
-                bot.send_message(message.chat.id, 'У тебя должна быть как минимум 1 фотография')
-        else:
-            print('Getting a photo from user: ', message.from_user.id)
-            photo_id = message.photo[-1].file_id
-            data['photos'].append(photo_id)
-            print(f'User {message.from_user.id} has next photos: ', data['photos'])
-            bot.send_message(message.chat.id, f'{len(data['photos'])}/2 фотографий добавлено')
-            if len(data['photos']) >= 2:
-                stop_add_photos = True
-    if stop_add_photos:
+    if add_photo_from_message(message):
         confirm_form(message)
-            
 
 def confirm_form(message):
     form = generate_form(message.from_user.id, message.chat.id)
     print(message.from_user.id, 'is thinking about saving his new form: ', form.get_data())
-    text = form.show_data()
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, is_persistent=True)
     markup.add(save_button, cancel_button)
     show_form(form, message.chat.id)
@@ -292,7 +275,12 @@ def edit_photos(message):
                 data['photo_num'] = len(data['photos']) + 1 # Position of new photo (not index)
             bot.set_state(message.from_user.id, FormState.edit_numbered_photo, message.chat.id)
         elif message.text == 'Заполнить заново':
-            pass
+            with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+                data['photos'].clear()
+            markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, is_persistent=True)
+            markup.row(skip_button, cancel_button)
+            bot.send_message(message.chat.id, 'Отправь свою фотографию. Ты можешь сохранить в своей анкете от 1 до 4 фотографий.\nОтправляй по одной!', reply_markup=markup)
+            bot.set_state(message.from_user.id, FormState.edit_photos_again, message.chat.id)
         elif message.text == 'Удалить все фотографии':
             pass
         else:
@@ -311,6 +299,11 @@ def edit_photo(message):
         else:
             data['photos'].append(photo_id)
     start_edit_photos(message.from_user.id, message.chat.id)
+
+@bot.message_handler(state=FormState.edit_photos_again, content_types=['photo', 'text', 'video'])
+def edit_photos_again(message : telebot.types.Message):
+    if add_photo_from_message(message):
+        edit_form(message, generate_form(message.from_user.id, message.chat.id))
 
 @bot.message_handler(func=lambda message: message.text in (save_text, cancel_text), state=FormState.save)
 def save_form_decision(message):
@@ -361,6 +354,24 @@ def show_form(form, chat_id):
             photos_to_send.append(telebot.types.InputMediaPhoto(form.photos[i]))
     bot.send_message(chat_id, 'Вот так выглядит твоя анкета:')
     bot.send_media_group(chat_id, photos_to_send)
+
+def add_photo_from_message(message : telebot.types.Message):
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        stop_add_photos = False
+        if message.content_type == 'text':
+            if message.text == 'Далее' and len(data['photos']) > 0:
+                stop_add_photos = True
+            else:
+                bot.send_message(message.chat.id, 'У тебя должна быть как минимум 1 фотография')
+        else:
+            print('Getting a photo from user: ', message.from_user.id)
+            photo_id = message.photo[-1].file_id
+            data['photos'].append(photo_id)
+            print(f'User {message.from_user.id} has next photos: ', data['photos'])
+            bot.send_message(message.chat.id, f'{len(data['photos'])}/2 фотографий добавлено')
+            if len(data['photos']) >= 2:
+                stop_add_photos = True
+    return stop_add_photos
 
 bot.add_custom_filter(custom_filters.StateFilter(bot))
 bot.infinity_polling(skip_pending=True)
