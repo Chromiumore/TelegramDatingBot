@@ -69,10 +69,6 @@ def get_age(message : telebot.types.Message):
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data['age'] = age
     bot.set_state(message.from_user.id, FormState.sex, message.chat.id)
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, is_persistent=True)
-    button1 = telebot.types.KeyboardButton('Парень')
-    button2 = telebot.types.KeyboardButton('Девушка')
-    button3 = telebot.types.KeyboardButton('Не указывать')
     bot.send_message(message.chat.id, 'Теперь укажи свой пол', reply_markup=Markups.SEX.value)   
 
 @bot.message_handler(state=FormState.sex)
