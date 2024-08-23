@@ -332,8 +332,8 @@ def add_photo_from_message(message : telebot.types.Message):
             photo_id = message.photo[-1].file_id
             data['photos'].append(photo_id)
             print(f'User {message.from_user.id} has next photos: ', data['photos'])
-            bot.send_message(message.chat.id, f'{len(data['photos'])}/2 фотографий добавлено')
-            if len(data['photos']) >= 2:
+            bot.send_message(message.chat.id, f'{len(data['photos'])}/4 фотографий добавлено')
+            if len(data['photos']) >= 4:
                 stop_add_photos = True
     return stop_add_photos
 
