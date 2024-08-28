@@ -304,8 +304,8 @@ def set_temp_data(user_id, chat_id, form : Form):
 
 def check_name_correct(name : str):
     for i in range(len(name)):
-        num = ord(name[i].lower())
-        if not ( ((ord('а') <= num) and (num <= ord('я'))) or (ord('a') <= num) and (num <= ord('z')) or (num == ' ') ):
+        chr = name[i].lower()
+        if not ( (('а' <= chr) and (chr <= 'я')) or (('a' <= chr) and (chr <= 'z')) or (chr == ' ') ):
             return False
     return True
 
